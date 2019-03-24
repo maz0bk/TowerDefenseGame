@@ -21,10 +21,10 @@ public class Monster {
         return position;
     }
 
-    public Monster(GameScreen gameScreen, TextureAtlas atlas) {
+    public Monster(GameScreen gameScree) {
         this.gameScreen = gameScreen;
-        this.texture = atlas.findRegion("monster");
-        this.textureHp = atlas.findRegion("monsterHp");
+        this.texture = Assets.getInstance().getAtlas().findRegion("monster");
+        this.textureHp = Assets.getInstance().getAtlas().findRegion("monsterHp");
         this.position = new Vector2(640, 360);
         this.velocity = new Vector2(MathUtils.random(-1.0f, 1.0f), MathUtils.random(-1.0f, 1.0f));
         this.velocity.nor().scl(150.0f);

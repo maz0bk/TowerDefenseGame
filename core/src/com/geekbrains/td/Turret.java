@@ -18,9 +18,9 @@ public class Turret {
     private long lastTapTime;
     private int cellXtmp, cellYtmp;
 
-    public Turret(GameScreen gameScreen, TextureAtlas atlas) {
+    public Turret(GameScreen gameScreen) {
         this.gameScreen = gameScreen;
-        this.texture = new TextureRegion(atlas.findRegion("turrets"), 0, 0, 80, 80);
+        this.texture = new TextureRegion(Assets.getInstance().getAtlas().findRegion("turrets"), 0, 0, 80, 80);
         this.cellX = 8;
         this.cellY = 4;
     }

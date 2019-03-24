@@ -18,16 +18,16 @@ public class Map {
     private byte[][] data;
     private TextureRegion textureRegionGrass;
     private TextureRegion textureRegionRoad;
-    private TextureRegion textureRegionCursor;
+//    private TextureRegion textureRegionCursor;
 
     private int selectedX = 0;
     private int selectedY = 0;
 
-    public Map(String mapName, TextureAtlas textureAtlas) {
+    public Map(String mapName) {
         data = new byte[MAP_WIDTH][MAP_HEIGHT];
-        textureRegionGrass = textureAtlas.findRegion("grass");
-        textureRegionRoad = textureAtlas.findRegion("road");
-        textureRegionCursor = textureAtlas.findRegion("cursor");
+        textureRegionGrass = Assets.getInstance().getAtlas().findRegion("grass");
+        textureRegionRoad =  Assets.getInstance().getAtlas().findRegion("road");
+//        textureRegionCursor = textureAtlas.findRegion("cursor");
         loadMapFromFile(mapName);
     }
 
@@ -42,9 +42,9 @@ public class Map {
                 }
             }
         }
-        batch.setColor(1,1,1,0.4f);
-        batch.draw(textureRegionCursor, selectedX * 80, selectedY * 80);
-        batch.setColor(1,1,1,1);
+//        batch.setColor(1,1,1,0.4f);
+//        batch.draw(textureRegionCursor, selectedX * 80, selectedY * 80);
+//        batch.setColor(1,1,1,1);
     }
 
     public void update(float dt) {
