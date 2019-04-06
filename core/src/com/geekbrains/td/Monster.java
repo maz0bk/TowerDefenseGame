@@ -35,7 +35,7 @@ public class Monster implements Poolable {
         return position;
     }
 
-    public Monster(GameScreen gameScree) {
+    public Monster(GameScreen gameScreen) {
         this.gameScreen = gameScreen;
         this.map = gameScreen.getMap();
         this.texture = Assets.getInstance().getAtlas().findRegion("monster");
