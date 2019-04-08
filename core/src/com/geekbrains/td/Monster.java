@@ -90,4 +90,15 @@ public class Monster implements Poolable {
             getNextPoint();
         }
     }
+    public void getDamage(int damage){
+        hp-=damage;
+        if(hp<=0){
+            active = false;
+            gameScreen.getPlayer().addGold(50);
+        }
+    }
+
+    public void deactivate() {
+        active = false;
+    }
 }

@@ -22,6 +22,7 @@ public class GameScreen implements Screen {
     private float monsterTimer;
     private int score;
     private int selectedCellX, selectedCellY;
+    private Player player;
 
     public Map getMap() {
         return map;
@@ -73,6 +74,7 @@ public class GameScreen implements Screen {
         this.monsterEmitter = new MonsterEmitter(this);
         this.turret = new Turret(this);
         this.selectedCellTexture = Assets.getInstance().getAtlas().findRegion("cursor");
+        this.player = new Player();
     }
 
     @Override
@@ -91,7 +93,9 @@ public class GameScreen implements Screen {
         bulletEmitter.render(batch);
         particleEmitter.render(batch);
 
-        font24.draw(batch, "SCORE: " + score, 20, 700);
+        font24.draw(batch, "SCORE: " + player.getGold(), 20, 700);
+        font24.draw(batch, "HEALTH: " + player.getHP(), 150, 700);
+
         batch.end();
     }
 
@@ -112,6 +116,14 @@ public class GameScreen implements Screen {
     public void checkCollisions() {
         for (int i = 0; i < bulletEmitter.getActiveList().size(); i++) {
             Bullet b = bulletEmitter.getActiveList().get(i);
+            //hw5
+            for (int j = 0; j < monsterEmitter.getActiveList().size(); j++) {
+                Monster monster = monsterEmitter.getActiveList().get(j);
+                if(monster.getPosition().dst(b.getPosition())<30){
+                    monster.getDamage(b.getDamage());
+                    b.deactivate();
+                }
+            }
             if (b.getPosition().x < 0 || b.getPosition().x > 1280 ||
                     b.getPosition().y < 0 || b.getPosition().y > 720) {
                 b.deactivate();
@@ -119,6 +131,13 @@ public class GameScreen implements Screen {
             }
             if (!map.isCellEmpty((int) (b.getPosition().x / 80), (int) (b.getPosition().y / 80))) {
                 b.deactivate();
+            }
+        }
+        for (int i = 0; i < monsterEmitter.getActiveList().size(); i++) {
+            Monster monster = monsterEmitter.getActiveList().get(i);
+            if(monster.getPosition().x<50){
+                player.getDamage(10);
+                monster.deactivate();
             }
         }
     }
@@ -155,5 +174,9 @@ public class GameScreen implements Screen {
     @Override
     public void dispose() {
 
+    }
+
+    public Player getPlayer() {
+        return player;
     }
 }

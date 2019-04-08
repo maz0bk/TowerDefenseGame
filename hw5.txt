@@ -1,1 +1,426 @@
-Александр, к сожалению совсем не успеваю сделать дз. В ближайжее время все сделаю.
+public class Player {
+    private int gold;
+    private int hp;
+
+    public Player() {
+        this.hp = 500;
+    }
+
+    public void addGold(int gold){
+        this.gold+=gold;
+    }
+    public void getDamage(int damage){
+        hp-=damage;
+    }
+
+    public int getGold() {
+        return gold;
+    }
+
+    public int getHP() {
+        return hp;
+    }
+}
+public class BulletEmitter extends ObjectPool<Bullet> {
+    private GameScreen gameScreen;
+    private TextureRegion bulletTexture;
+
+    @Override
+    protected Bullet newObject() {
+        return new Bullet();
+    }
+
+    public BulletEmitter(GameScreen gameScreen) {
+        this.gameScreen = gameScreen;
+        this.bulletTexture = Assets.getInstance().getAtlas().findRegion("star16");
+    }
+
+    public void setup(float x, float y, float vx, float vy, int damage) {
+        Bullet b = getActiveElement();
+        b.setup(x, y, vx, vy, damage);
+    }
+
+    public void render(SpriteBatch batch) {
+        batch.setColor(1,0,0,1);
+        for (int i = 0; i < activeList.size(); i++) {
+            Bullet b = activeList.get(i);
+            batch.draw(bulletTexture, b.getPosition().x - 8, b.getPosition().y - 8);
+        }
+        batch.setColor(1,1,1,1);
+    }
+
+    public void update(float dt) {
+        for (int i = 0; i < activeList.size(); i++) {
+            Bullet b = activeList.get(i);
+            b.getPosition().mulAdd(b.getVelocity(), dt);
+            gameScreen.getParticleEmitter().setup(b.getPosition().x, b.getPosition().y, MathUtils.random(-25, 25), MathUtils.random(-25, 25), 0.1f,1.2f,0.2f,1,0,0,1,1,1,0,1);
+        }
+    }
+}
+
+public class GameScreen implements Screen {
+    private SpriteBatch batch;
+    private Vector2 mousePosition;
+    private Camera camera;
+    private Map map;
+    private MonsterEmitter monsterEmitter;
+    private Turret turret;
+    private TextureRegion selectedCellTexture;
+    private ParticleEmitter particleEmitter;
+    private BulletEmitter bulletEmitter;
+    private BitmapFont font24;
+    private float monsterTimer;
+    private int score;
+    private int selectedCellX, selectedCellY;
+    private Player player;
+
+    public Map getMap() {
+        return map;
+    }
+
+    public ParticleEmitter getParticleEmitter() {
+        return particleEmitter;
+    }
+
+    public MonsterEmitter getMonsterEmitter() {
+        return monsterEmitter;
+    }
+
+    public BulletEmitter getBulletEmitter() {
+        return bulletEmitter;
+    }
+
+    public GameScreen(SpriteBatch batch, Camera camera) {
+        this.batch = batch;
+        this.camera = camera;
+    }
+
+    @Override
+    public void show() {
+        mousePosition = new Vector2(0, 0);
+        InputProcessor myProc = new InputAdapter() {
+            @Override
+            public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+                mousePosition.set(screenX, screenY);
+                ScreenManager.getInstance().getViewport().unproject(mousePosition);
+
+                if (selectedCellX == (int) (mousePosition.x / 80) && selectedCellY == (int) (mousePosition.y / 80)) {
+                    map.setWall((int) (mousePosition.x / 80), (int) (mousePosition.y / 80));
+                }
+
+                selectedCellX = (int) (mousePosition.x / 80);
+                selectedCellY = (int) (mousePosition.y / 80);
+
+                return true;
+            }
+        };
+        // InputMultiplexer im = new InputMultiplexer(stage, myProc);
+        Gdx.input.setInputProcessor(myProc);
+
+        this.particleEmitter = new ParticleEmitter();
+        this.font24 = Assets.getInstance().getAssetManager().get("fonts/zorque24.ttf");
+        this.bulletEmitter = new BulletEmitter(this);
+        this.map = new Map("level01.map");
+        this.monsterEmitter = new MonsterEmitter(this);
+        this.turret = new Turret(this);
+        this.selectedCellTexture = Assets.getInstance().getAtlas().findRegion("cursor");
+        this.player = new Player();
+    }
+
+    @Override
+    public void render(float delta) {
+        float dt = Gdx.graphics.getDeltaTime();
+        update(dt);
+        batch.begin();
+        map.render(batch);
+
+        batch.setColor(1, 1, 0, 0.5f);
+        batch.draw(selectedCellTexture, selectedCellX * 80, selectedCellY * 80);
+        batch.setColor(1, 1, 1, 1);
+
+        monsterEmitter.render(batch);
+        turret.render(batch);
+        bulletEmitter.render(batch);
+        particleEmitter.render(batch);
+
+        font24.draw(batch, "SCORE: " + player.getGold(), 20, 700);
+        font24.draw(batch, "HEALTH: " + player.getHP(), 150, 700);
+
+        batch.end();
+    }
+
+    public void update(float dt) {
+        particleEmitter.setup(640, 360, MathUtils.random(-20.0f, 20.0f), MathUtils.random(20.0f, 80.0f), 0.9f, 1.0f, 0.2f, 1, 0, 0, 1, 1, 1, 0, 1);
+        map.update(dt);
+        monsterEmitter.update(dt);
+        turret.update(dt);
+        particleEmitter.update(dt);
+        generateMonsters(dt);
+        bulletEmitter.update(dt);
+        checkCollisions();
+        monsterEmitter.checkPool();
+        particleEmitter.checkPool();
+        bulletEmitter.checkPool();
+    }
+
+    public void checkCollisions() {
+        for (int i = 0; i < bulletEmitter.getActiveList().size(); i++) {
+            Bullet b = bulletEmitter.getActiveList().get(i);
+            //hw5
+            for (int j = 0; j < monsterEmitter.getActiveList().size(); j++) {
+                Monster monster = monsterEmitter.getActiveList().get(j);
+                if(monster.getPosition().dst(b.getPosition())<30){
+                    monster.getDamage(b.getDamage());
+                    b.deactivate();
+                }
+            }
+            if (b.getPosition().x < 0 || b.getPosition().x > 1280 ||
+                    b.getPosition().y < 0 || b.getPosition().y > 720) {
+                b.deactivate();
+                continue;
+            }
+            if (!map.isCellEmpty((int) (b.getPosition().x / 80), (int) (b.getPosition().y / 80))) {
+                b.deactivate();
+            }
+        }
+        for (int i = 0; i < monsterEmitter.getActiveList().size(); i++) {
+            Monster monster = monsterEmitter.getActiveList().get(i);
+            if(monster.getPosition().x<50){
+                player.getDamage(10);
+                monster.deactivate();
+            }
+        }
+    }
+
+    public void generateMonsters(float dt) {
+        monsterTimer += dt;
+        if (monsterTimer > 3.0f) {
+            monsterTimer = 0;
+            monsterEmitter.setup(15, MathUtils.random(0, 8));
+        }
+    }
+
+
+    @Override
+    public void resize(int width, int height) {
+        ScreenManager.getInstance().resize(width, height);
+    }
+
+    @Override
+    public void pause() {
+
+    }
+
+    @Override
+    public void resume() {
+
+    }
+
+    @Override
+    public void hide() {
+
+    }
+
+    @Override
+    public void dispose() {
+
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+}
+public class Monster implements Poolable {
+    private GameScreen gameScreen;
+    private Map map;
+
+    private TextureRegion texture;
+    private TextureRegion textureHp;
+    private Vector2 position;
+    private Vector2 destination;
+
+    private int currentPoint;
+    private Vector2 velocity;
+
+    private int hp;
+    private int hpMax;
+
+    private boolean active;
+
+    @Override
+    public boolean isActive() {
+        return active;
+    }
+
+    public Vector2 getPosition() {
+        return position;
+    }
+
+    public Monster(GameScreen gameScreen) {
+        this.gameScreen = gameScreen;
+        this.map = gameScreen.getMap();
+        this.texture = Assets.getInstance().getAtlas().findRegion("monster");
+        this.textureHp = Assets.getInstance().getAtlas().findRegion("monsterHp");
+        this.position = new Vector2(640, 360);
+        this.destination = new Vector2(0, 0);
+        this.velocity = new Vector2(0, 0);
+        this.hpMax = 100;
+        this.hp = this.hpMax;
+        this.active = false;
+    }
+
+    public void activate(float x, float y) {
+        this.texture = Assets.getInstance().getAtlas().findRegion("monster");
+        this.textureHp = Assets.getInstance().getAtlas().findRegion("monsterHp");
+        this.position = new Vector2(x, y);
+        this.velocity = new Vector2(-100.0f, 0.0f);
+        this.hpMax = 100;
+        this.hp = this.hpMax;
+        this.getNextPoint();
+        this.active = true;
+    }
+
+    public void getNextPoint() {
+        List<Vector2> path = new ArrayList<>();
+        path.add(position);
+        for (int i = 0; i < 5; i++) {
+            Vector2 tmp = path.get(path.size() - 1);
+            int tmpCX = (int) (tmp.x / 80);
+            int tmpCY = (int) (tmp.y / 80);
+            if (tmpCX > 0 && map.isCellEmpty(tmpCX - 1, tmpCY)) {
+                path.add(new Vector2((tmpCX - 1) * 80 + 40, tmpCY * 80 + 40));
+            } else if (tmpCY < 8 && map.isCellEmpty(tmpCX, tmpCY + 1)) {
+                path.add(new Vector2(tmpCX * 80 + 40, (tmpCY + 1) * 80 + 40));
+            } else if (tmpCY > 0 && map.isCellEmpty(tmpCX, tmpCY - 1)) {
+                path.add(new Vector2(tmpCX * 80 + 40, (tmpCY - 1) * 80 + 40));
+            } else {
+                path.add(tmp);
+            }
+        }
+        destination.set(path.get(1));
+    }
+    public void render(SpriteBatch batch) {
+        batch.draw(texture, position.x - 40, position.y - 40);
+        batch.draw(textureHp, position.x - 40, position.y + 40 - 12, 56 * ((float)hp / hpMax), 12);
+    }
+
+    public void update(float dt) {
+        velocity.set(destination).sub(position).nor().scl(100.0f);
+        position.mulAdd(velocity, dt);
+        if (position.dst(destination) < 2.0f) {
+            getNextPoint();
+        }
+    }
+    public void getDamage(int damage){
+        hp-=damage;
+        if(hp<=0){
+            active = false;
+            gameScreen.getPlayer().addGold(50);
+        }
+    }
+
+    public void deactivate() {
+        active = false;
+    }
+}
+public class Turret {
+    private GameScreen gameScreen;
+
+    private TextureRegion texture;
+    private Vector2 position;
+    private Vector2 tmp;
+    private int cellX, cellY;
+    private float angle;
+    private float rotationSpeed;
+    private float fireRadius;
+
+    private float fireRate;
+    private float fireTime;
+    private int damage;
+
+    private Monster target;
+
+    public Turret(GameScreen gameScreen) {
+        this.gameScreen = gameScreen;
+        this.texture = new TextureRegion(Assets.getInstance().getAtlas().findRegion("turrets"), 0, 0, 80, 80);
+        this.cellX = 8;
+        this.cellY = 4;
+        this.position = new Vector2(cellX * 80 + 40, cellY * 80 + 40);
+        this.rotationSpeed = 180.0f;
+        this.target = null;
+        this.fireRadius = 100.0f;
+        this.tmp = new Vector2(0, 0);
+        this.fireRate = 0.4f;
+        this.fireTime = 0.0f;
+        this.damage = 20;
+    }
+
+    public void render(SpriteBatch batch) {
+        batch.draw(texture, cellX * 80, cellY * 80, 40, 40, 80, 80, 1, 1, angle);
+    }
+
+    public void update(float dt) {
+        if (target != null && !checkMonsterInRange(target)) {
+            target = null;
+        }
+        if (target == null) {
+            float maxDst = 10000.0f;
+            for (int i = 0; i < gameScreen.getMonsterEmitter().getActiveList().size(); i++) {
+                Monster m = gameScreen.getMonsterEmitter().getActiveList().get(i);
+                float dst = position.dst(m.getPosition());
+                if (dst < maxDst) {
+                    target = m;
+                    maxDst = dst;
+                }
+            }
+        }
+        if (target != null) {
+            checkRotation(dt);
+            tryToFire(dt);
+        }
+
+    }
+
+    public boolean checkMonsterInRange(Monster monster) {
+        return Vector2.dst(position.x, position.y, monster.getPosition().x, monster.getPosition().y) < fireRadius;
+    }
+
+    public float getAngleToTarget() {
+        return tmp.set(target.getPosition()).sub(position).angle();
+    }
+
+    public void checkRotation(float dt) {
+        if (target != null) {
+            float angleTo = getAngleToTarget();
+            if (angle > angleTo) {
+                if (Math.abs(angle - angleTo) <= 180.0f) {
+                    angle -= rotationSpeed * dt;
+                } else {
+                    angle += rotationSpeed * dt;
+                }
+            }
+            if (angle < angleTo) {
+                if (Math.abs(angle - angleTo) <= 180.0f) {
+                    angle += rotationSpeed * dt;
+                } else {
+                    angle -= rotationSpeed * dt;
+                }
+            }
+            if (angle < 0.0f) {
+                angle += 360.0f;
+            }
+            if (angle > 360.0f) {
+                angle -= 360.0f;
+            }
+        }
+    }
+
+    public void tryToFire(float dt) {
+        fireTime += dt;
+        if (fireTime > fireRate) {
+            fireTime = 0.0f;
+            float rad = (float)Math.toRadians(angle);
+            gameScreen.getBulletEmitter().setup(position.x, position.y, 250.0f * (float)Math.cos(rad), 250.0f * (float)Math.sin(rad), damage);
+        }
+    }
+}

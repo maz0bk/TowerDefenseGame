@@ -20,6 +20,7 @@ public class Turret {
 
     private float fireRate;
     private float fireTime;
+    private int damage;
 
     private Monster target;
 
@@ -35,6 +36,7 @@ public class Turret {
         this.tmp = new Vector2(0, 0);
         this.fireRate = 0.4f;
         this.fireTime = 0.0f;
+        this.damage = 20;
     }
 
     public void render(SpriteBatch batch) {
@@ -102,7 +104,7 @@ public class Turret {
         if (fireTime > fireRate) {
             fireTime = 0.0f;
             float rad = (float)Math.toRadians(angle);
-            gameScreen.getBulletEmitter().setup(position.x, position.y, 250.0f * (float)Math.cos(rad), 250.0f * (float)Math.sin(rad));
+            gameScreen.getBulletEmitter().setup(position.x, position.y, 250.0f * (float)Math.cos(rad), 250.0f * (float)Math.sin(rad), damage);
         }
     }
 }

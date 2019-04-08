@@ -18,9 +18,9 @@ public class BulletEmitter extends ObjectPool<Bullet> {
         this.bulletTexture = Assets.getInstance().getAtlas().findRegion("star16");
     }
 
-    public void setup(float x, float y, float vx, float vy) {
+    public void setup(float x, float y, float vx, float vy, int damage) {
         Bullet b = getActiveElement();
-        b.setup(x, y, vx, vy);
+        b.setup(x, y, vx, vy, damage);
     }
 
     public void render(SpriteBatch batch) {
