@@ -18,7 +18,6 @@ public class Monster implements Poolable {
     private Vector2 position;
     private Vector2 destination;
 
-    private int currentPoint;
     private Vector2 velocity;
 
     private int hp;
@@ -60,23 +59,8 @@ public class Monster implements Poolable {
     }
 
     public void getNextPoint() {
-        List<Vector2> path = new ArrayList<>();
-        path.add(position);
-        for (int i = 0; i < 5; i++) {
-            Vector2 tmp = path.get(path.size() - 1);
-            int tmpCX = (int) (tmp.x / 80);
-            int tmpCY = (int) (tmp.y / 80);
-            if (tmpCX > 0 && map.isCellEmpty(tmpCX - 1, tmpCY)) {
-                path.add(new Vector2((tmpCX - 1) * 80 + 40, tmpCY * 80 + 40));
-            } else if (tmpCY < 8 && map.isCellEmpty(tmpCX, tmpCY + 1)) {
-                path.add(new Vector2(tmpCX * 80 + 40, (tmpCY + 1) * 80 + 40));
-            } else if (tmpCY > 0 && map.isCellEmpty(tmpCX, tmpCY - 1)) {
-                path.add(new Vector2(tmpCX * 80 + 40, (tmpCY - 1) * 80 + 40));
-            } else {
-                path.add(tmp);
-            }
-        }
-        destination.set(path.get(1));
+        map.buildRoute(gameScreen.getMap().CASTLE_X, gameScreen.getMap().CASTLE_Y, (int) (position.x / 80), (int) (position.y / 80), destination);
+        destination.scl(80, 80).add(40, 40);
     }
     public void render(SpriteBatch batch) {
         batch.draw(texture, position.x - 40, position.y - 40);
@@ -90,12 +74,14 @@ public class Monster implements Poolable {
             getNextPoint();
         }
     }
-    public void getDamage(int damage){
+    public boolean getDamage(int damage){
         hp-=damage;
+
         if(hp<=0){
-            active = false;
-            gameScreen.getPlayer().addGold(50);
+            deactivate();
+            return true;
         }
+        return false;
     }
 
     public void deactivate() {

@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
 
-public class Turret {
+public class Turret implements Poolable{
     private GameScreen gameScreen;
 
     private TextureRegion texture;
@@ -21,10 +21,13 @@ public class Turret {
     private float fireRate;
     private float fireTime;
     private int damage;
+    private int type;
 
     private Monster target;
 
-    public Turret(GameScreen gameScreen) {
+    private boolean active;
+
+    public Turret(GameScreen gameScreen)  {
         this.gameScreen = gameScreen;
         this.texture = new TextureRegion(Assets.getInstance().getAtlas().findRegion("turrets"), 0, 0, 80, 80);
         this.cellX = 8;
@@ -32,11 +35,16 @@ public class Turret {
         this.position = new Vector2(cellX * 80 + 40, cellY * 80 + 40);
         this.rotationSpeed = 180.0f;
         this.target = null;
-        this.fireRadius = 100.0f;
+        this.fireRadius = 400.0f;
         this.tmp = new Vector2(0, 0);
         this.fireRate = 0.4f;
         this.fireTime = 0.0f;
         this.damage = 20;
+    }
+
+    @Override
+    public boolean isActive() {
+        return active;
     }
 
     public void render(SpriteBatch batch) {
@@ -52,7 +60,7 @@ public class Turret {
             for (int i = 0; i < gameScreen.getMonsterEmitter().getActiveList().size(); i++) {
                 Monster m = gameScreen.getMonsterEmitter().getActiveList().get(i);
                 float dst = position.dst(m.getPosition());
-                if (dst < maxDst) {
+                if (dst < fireRadius && dst < maxDst) {
                     target = m;
                     maxDst = dst;
                 }
@@ -63,6 +71,38 @@ public class Turret {
             tryToFire(dt);
         }
 
+    }
+
+    public void setup(int type, int cellX, int cellY) {
+        switch (type){
+            case 2:  this.texture = new TextureRegion(Assets.getInstance().getAtlas().findRegion("turrets"), 80, 0, 80, 80);
+                this.damage = 30;
+
+                break;
+            case 3:
+                this.texture = new TextureRegion(Assets.getInstance().getAtlas().findRegion("turrets"), 0, 80, 80, 80);
+                this.damage = 50;
+                break;
+            case 4:
+                this.texture = new TextureRegion(Assets.getInstance().getAtlas().findRegion("turrets"), 80, 80, 80, 80);
+                this.damage = 75;
+                break;
+                default: type =1;
+                break;
+        }
+        this.type = type;
+        this.cellX = cellX;
+        this.cellY = cellY;
+        this.position.set(cellX * 80 + 40, cellY * 80 + 40);
+        this.active = true;
+    }
+
+    public int getCellX() {
+        return cellX;
+    }
+
+    public int getCellY() {
+        return cellY;
     }
 
     public boolean checkMonsterInRange(Monster monster) {
@@ -104,7 +144,19 @@ public class Turret {
         if (fireTime > fireRate) {
             fireTime = 0.0f;
             float rad = (float)Math.toRadians(angle);
-            gameScreen.getBulletEmitter().setup(position.x, position.y, 250.0f * (float)Math.cos(rad), 250.0f * (float)Math.sin(rad), damage);
+            gameScreen.getBulletEmitter().setup(position.x, position.y, 400.0f * (float)Math.cos(rad), 400.0f * (float)Math.sin(rad), damage);
         }
+    }
+
+    public void deactivate() {
+        active = false;
+    }
+
+    public void upgrade() {
+        type+=2;
+    }
+
+    public int getType() {
+        return type;
     }
 }
