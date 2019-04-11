@@ -1,5 +1,3 @@
-Как строить алгоритм поиска пути если у разных участков карты разная проходимость?
-
 public class Player {
     private int gold;
     private int hp;
